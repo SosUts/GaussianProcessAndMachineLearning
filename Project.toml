@@ -1,7 +1,14 @@
-name = "GPAndML"
+name = "GPML"
 uuid = "29e2126a-92a0-4d0a-bb4a-008b88df768c"
 authors = ["SosUts <uts.199.ubosou@gmail.com>"]
 version = "0.1.0"
+
+[deps]
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+PDMats = "90014a1f-27ba-587c-ab20-58faa44d9150"
+PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
+Tullio = "bc48ee85-29a4-5162-ae0b-a64e1601d4bc"
 
 [compat]
 julia = "1.6"

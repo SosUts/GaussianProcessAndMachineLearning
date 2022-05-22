@@ -1,6 +1,6 @@
-using GPAndML
+using GPML
 using Test
 
-@testset "GPAndML.jl" begin
+@testset "GPML.jl" begin
     # Write your tests here.
 end

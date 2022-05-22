@@ -1,4 +1,4 @@
-module GPAndML
+module GPML
 
 # Write your package code here.
 
