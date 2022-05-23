@@ -11,6 +11,7 @@ PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 Tullio = "bc48ee85-29a4-5162-ae0b-a64e1601d4bc"
 
 [compat]
+Tullio = "0.3"
 julia = "1.6"
 
 [extras]
