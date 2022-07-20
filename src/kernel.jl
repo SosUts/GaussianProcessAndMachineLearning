@@ -4,22 +4,29 @@ using Tullio
 using PyPlot
 using PDMats
 
-
 abstract type Kernel end
 
 abstract type SingleKernel end
+
+
+function norm(x1, x2; p=2)
+    abs(x1 - x2)^p
+end
+struct Noise{T} <: SingleKernel
+    a::T
+end
+
+function (nk::Noise)(x1, x2)
+    nk.a * (x1 == x2)
+end
 
 struct Gaussian{T1,T2} <: SingleKernel
     a::T1
     b::T2
 end
 
-function norm(x1, x2; p=2)
-    abs(x1 - x2)^p
-end
-
 function (gk::Gaussian)(x1, x2)
-    gk.a * exp(-norm(x1, x2; p=2) / gk.b)
+    gk.a * exp(-0.5*norm(x1, x2; p=2) / gk.b)
 end
 
 struct Linear <: SingleKernel end
@@ -72,7 +79,7 @@ end
 abstract type CombinationKernel <: Kernel end
 
 struct SumKernel <: CombinationKernel
-    kernels::Vector{SingleKernel}
+    elements::Vector{SingleKernel}
     function SumKernel(ks...)
         kernels = Vector{SingleKernel}(undef, length(ks))
         @tullio kernels[i] = ks[i]
@@ -81,7 +88,7 @@ struct SumKernel <: CombinationKernel
 end
 
 struct ProductKernel <: CombinationKernel
-    kernels::Vector{SingleKernel}
+    elements::Vector{SingleKernel}
     function ProductKernel(ks...)
         kernels = Vector{SingleKernel}(undef, length(ks))
         @tullio kernels[i] = ks[i]
@@ -89,49 +96,46 @@ struct ProductKernel <: CombinationKernel
     end
 end
 
-
-function K(kernel::SingleKernel, x1, x2)
-    length(x1) == length(x2) || throw(DomainError("Inputs must have same length"))
-    K = Array{promote_type(eltype(x1), eltype(x2))}(undef, length(x1), length(x1))
-    @tullio K[i, j] = kernel(x1[i], x2[j])
+function (sk::SumKernel)(x1, x2)
+    sk.elements[1](x1, x2) + sk.elements[2](x1, x2)
 end
 
-function K(kernel::SingleKernel, x)
-    K = Array{eltype(x)}(undef, length(x), length(x))
-    @tullio K[i, j] = kernel(x[i], x[j])
+function Base.:*(kernel::SingleKernel...)
+    ProductKernel(kernel...)
 end
 
-function K(combkernels::CombinationKernel, x1, x2)
-    length(x1) == length(x2) || throw(DomainError("Inputs must have same length"))
-    K = Array{promote_type(eltype(x1), eltype(x2))}(undef, length(x1), length(x1))
-    @tullio K[i, j] = combkernels.kernels[k](x1[i], x2[j])
-end
-
-function K(combkernels::CombinationKernel, x1)
-    K = Array{eltype(x)}(undef, length(x), length(x))
-    @tullio K[i, j] = combkernels.kernels[k](x[i], x[j])
-end
-
-function Base.:*(k1::SingleKernel, k2::SingleKernel)
-    ProductKernel(k1, k2)
-end
-
-function Base.:*(k1::ProductKernel, k2::SingleKernel)
-    push!(k1.kernels, k2)
+function Base.:*(k1::ProductKernel, k2::SingleKernel...)
+    push!(k1.elements, k2...)
 end
 
 function Base.:*(k1::SingleKernel, k2::ProductKernel)
-    push!(k2.kernels, k1)
+    push!(k2.elements, k1)
 end
 
-function Base.:+(k1::SingleKernel, k2::SingleKernel)
-    SumKernel(k1, k2)
+function Base.:+(kernel::SingleKernel...)
+    SumKernel(kernel...)
 end
 
 function Base.:+(k1::SumKernel, k2::SingleKernel)
-    push!(k1.kernels, k2)
+    push!(k1.elements, k2)
 end
 
 function Base.:+(k1::SingleKernel, k2::ProductKernel)
-    push!(k2.kernels, k1)
+    push!(k2.elements, k1)
+end
+
+function Base.:iterate(combination_kernels::CombinationKernel, state=1)
+    if state > length(combination_kernels.elements)
+        return nothing
+    else
+        return (combination_kernels.elements[state], state+1)
+    end
+end
+
+function Base.:show(combination_kernel::CombinationKernel)
+    type = typeof(combination_kernel)
+    println(type, ":")
+    for kernel in combination_kernel
+        println("    ", kernel)
+    end
 end
