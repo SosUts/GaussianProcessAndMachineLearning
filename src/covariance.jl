@@ -1,7 +1,13 @@
-"""
-https://github.com/STOR-i/GaussianProcesses.jl/blob/9fe174a1753796fe7295b81d76536e5eb1c37f32/src/GP.jl#L91-L116
-"""
-function make_posdef!(m::AbstractMatrix, chol_factors::AbstractMatrix; nugget=1.0e-10)
+using Distributions
+using LinearAlgebra
+using Tullio
+using PyPlot
+using PDMats
+
+include("./kernel/single.jl")
+include("./kernel/composite.jl")
+
+function _make_posdef!(m::AbstractMatrix, chol_factors::AbstractMatrix; nugget=1.0e-10)
     n = size(m, 1)
     size(m, 2) == n || throw(ArgumentError("Covariance matrix must be square"))
     if nugget > 0
@@ -14,7 +20,52 @@ function make_posdef!(m::AbstractMatrix, chol_factors::AbstractMatrix; nugget=1.
     m, chol
 end
 
-function make_posdef!(m::AbstractMatrix; nugget=1.0e-10)
+function _make_posdef!(m::AbstractMatrix; nugget=1.0e-10)
+    """
+    https://github.com/STOR-i/GaussianProcesses.jl/blob/9fe174a1753796fe7295b81d76536e5eb1c37f32/src/GP.jl#L91-L116
+    """
     chol_buffer = similar(m)
-    make_posdef!(m, chol_buffer; nugget=nugget)
+    _make_posdef!(m, chol_buffer; nugget=nugget)
+end
+
+function cov(kernel::SingleKernel, x)
+    cov_matrix = Array{eltype(x)}(undef, length(x), length(x))
+    @tullio cov_matrix[i, j] = kernel(x[i], x[j])
+    cov_matrix
+end
+
+function cov(kernels::SumKernel, x1, x2)
+    kernels.(x1, x2')
+end
+
+function cov(kernels::SumKernel, x)
+    cov(kernels, x, x')
+end
+
+function cov(kernel::SingleKernel, x1, x2)
+    kernel.(x1, x2')
+end
+
+function cov(kernel::SingleKernel, x)
+    cov(kernel, x, x')
+end
+
+function cov(kernels::SumKernel, x)
+    cov_matrix = Array{eltype(x)}(undef, length(x), length(x))
+    @tullio cov_matrix[i, j] = kernels(x[i], x[j])
+    cov_matrix
+end
+
+function predict(kernel, train_x, train_y, predict_x)
+    inv_Ktt = pinv(cov(kernel, train_x))
+    ktp = cov(kernel, train_x, predict_x)
+    kpp = cov(kernel, predict_x)
+
+    trained_mu = ktp' * inv_Ktt * train_y
+    trained_cov = kpp - ktp' * inv_Ktt * ktp
+    try
+        return MvNormal(trained_mu, Symmetric(trained_cov))
+    catch
+        return MvNormal(trained_mu, Symmetric(_make_posdef!(trained_cov)[1]))
+    end
 end
