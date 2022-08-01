@@ -12,6 +12,7 @@ PDMats = "90014a1f-27ba-587c-ab20-58faa44d9150"
 PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 
 [compat]
+JuliaFormatter = "1"
 julia = "1.6"
 
 [extras]
