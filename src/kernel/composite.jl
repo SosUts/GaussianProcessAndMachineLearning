@@ -1,14 +1,16 @@
 using Distributions
 using LinearAlgebra
 
-include("./single.jl")
+include("./type.jl")
 
 
 struct SumKernel <: CombinationKernel
     elements::Vector{SingleKernel}
     function SumKernel(ks...)
         kernels = Vector{SingleKernel}(undef, length(ks))
-        @tullio kernels[i] = ks[i]
+        for (i, element) in enumerate(ks)
+            kernels[i] = element
+        end
         new(kernels)
     end
 end
@@ -17,7 +19,9 @@ struct ProductKernel <: CombinationKernel
     elements::Vector{SingleKernel}
     function ProductKernel(ks...)
         kernels = Vector{SingleKernel}(undef, length(ks))
-        @tullio kernels[i] = ks[i]
+        for (i, element) in enumerate(ks)
+            kernels[i] = element
+        end
         new(kernels)
     end
 end

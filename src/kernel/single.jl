@@ -2,6 +2,7 @@ using Distributions
 using LinearAlgebra
 
 include("./type.jl")
+include("./composite.jl")
 
 
 function norm(x1, x2; p=2)

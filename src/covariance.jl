@@ -1,6 +1,5 @@
 using Distributions
 using LinearAlgebra
-using Tullio
 using PyPlot
 using PDMats
 
@@ -28,33 +27,14 @@ function _make_posdef!(m::AbstractMatrix; nugget=1.0e-10)
     _make_posdef!(m, chol_buffer; nugget=nugget)
 end
 
-function cov(kernel::SingleKernel, x)
-    cov_matrix = Array{eltype(x)}(undef, length(x), length(x))
-    @tullio cov_matrix[i, j] = kernel(x[i], x[j])
-    cov_matrix
-end
-
-function cov(kernels::SumKernel, x1, x2)
-    kernels.(x1, x2')
-end
-
-function cov(kernels::SumKernel, x)
-    cov(kernels, x, x')
-end
-
-function cov(kernel::SingleKernel, x1, x2)
+function cov(kernel::Kernel, x1, x2)
     kernel.(x1, x2')
 end
 
-function cov(kernel::SingleKernel, x)
-    cov(kernel, x, x')
+function cov(kernel::Kernel, x)
+    cov(kernel, x, x)
 end
 
-function cov(kernels::SumKernel, x)
-    cov_matrix = Array{eltype(x)}(undef, length(x), length(x))
-    @tullio cov_matrix[i, j] = kernels(x[i], x[j])
-    cov_matrix
-end
 
 function predict(kernel, train_x, train_y, predict_x)
     inv_Ktt = pinv(cov(kernel, train_x))
